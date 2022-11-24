@@ -1,5 +1,5 @@
 import logging
-from systemd.journal import JournaldLogHandler, Priority
+from systemd.journal import JournalHandler
 import os, json
 from os import path
 from glob import glob
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     if debug:
         #logger
         LOG = logging.getLogger('testbot')
-        LOG.addHandler(JournaldLogHandler())
+        LOG.addHandler(JournalHandler())
         LOG.setLevel(logging.DEBUG)
         #LOG.debug("text in dark gray")
         #LOG.info("text in white")
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     else:
         #logger
         LOG = logging.getLogger('cake4everybot')
-        LOG.addHandler(JournaldLogHandler())
+        LOG.addHandler(JournalHandler())
         LOG.setLevel(logging.INFO)
         #LOG.info("text in white")
         #LOG.warning("text in bold white")
