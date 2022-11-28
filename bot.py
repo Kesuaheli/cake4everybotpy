@@ -84,6 +84,8 @@ class Bot(BotBase):
             self.stdout = self.get_channel(910968992695468135)
             self.yt_notify = self.get_channel(
                 config['text_channel']['yt_notify'])
+            self.guild_log = self.get_channel(
+                config['text_channel']['guild_log'])
             self.scheduler.start()
 
             self.ready = True
@@ -118,7 +120,8 @@ if __name__ == '__main__':
                 },
                 "text_channel": {
                     "no_mic": 955506588930687066,
-                    "yt_notify": 910968992695468135
+                    "yt_notify": 910968992695468135,
+                    "guild_log": 910968992695468135
                 },
                 "guild": {
                     "test": 910968992695468132,
@@ -138,7 +141,8 @@ if __name__ == '__main__':
                 },
                 "text_channel": {
                     "no_mic": 912006597532864592,
-                    "yt_notify": 1007028983264722964
+                    "yt_notify": 1007028983264722964,
+                    "guild_log": 906228537344794664
                 },
                 "guild": {
                     "test": 910968992695468132,
