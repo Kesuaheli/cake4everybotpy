@@ -88,6 +88,35 @@ class AdventCalendar(Cog):
     async def on_raw_reaction_remove(self, e: RawReactionActionEvent):
         await self.handle_reaction(e)
 
+        
+    @cog_ext.cog_subcommand(base="adventskalender", name="ziehen",
+                            base_description="Verschiedene Einstellungen für den Adventskalenderbot.",
+                            description="Ziehe einen Gewinner für den Adventskalender.",
+                            guild_ids=[guild_id])
+    async def drawWinner(self, ctx: SlashContext):
+        await ctx.send("WIP.", hidden=True)
+    
+    @cog_ext.cog_subcommand(base="adventskalender", name="hinzufügen",
+                            base_description="Verschiedene Einstellungen für den Adventskalenderbot.",
+                            description="Füge eine Person für die Auslosung hinzu.",
+                            guild_ids=[guild_id],
+                            options=[
+                                create_option(name="person",
+                                              description="Welche Person möchtest du ins Gewinnspiel aufnehmen?",
+                                              option_type=6,
+                                              required=True
+                                              ),
+                                create_option(name="tickets",
+                                              description="Wieviele Tickets hat diese Person?",
+                                              option_type=4,
+                                              required=True,
+                                              min_value=0,
+                                              max_value=24
+                                              )
+                            ])
+    async def addMember(self, ctx: SlashContext, person, tickets):
+        await ctx.send("WIP.", hidden=True)
+
     async def handle_reaction(self, e: RawReactionActionEvent):
         channel = await self.bot.fetch_channel(e.channel_id)
         
