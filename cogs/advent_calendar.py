@@ -26,6 +26,7 @@ class AdventCalendar(Cog):
         self.bot = bot
         self.advent_channel = self.bot.get_channel(1046802329241931806)
         self.today = date.today()
+        self.entries = [(123456, 20),(654321, 10),(13246, 70),]
 
     async def openCalendar(self):
         self.today = date.today()
@@ -88,6 +89,32 @@ class AdventCalendar(Cog):
     async def on_raw_reaction_remove(self, e: RawReactionActionEvent):
         await self.handle_reaction(e)
 
+    @cog_ext.cog_subcommand(base="adventskalender", name="zeigen",
+                            base_description="Verschiedene Einstellungen für den Adventskalenderbot.",
+                            description="Zeige die aktuellen einträge für das Adventskalender-Gewinnspiel.",
+                            guild_ids=[guild_id])
+    async def showEntries(self, ctx: SlashContext):
+        registeredTickets = 0
+        for entry in self.entries:
+            if entry[0] != None and entry[0] > 0:
+                registeredTickets += entry[1]
+
+        entriesEmbed = Embed(
+            description="Es sind momentan folgende Leute eingetragen",
+            color=0x2f3136)
+        
+
+        for entry in self.entries:
+            username = "*coming soon...*"
+            chance = entry[1]/registeredTickets*100
+            chance = chance.floor() if chance%1 == 0.0 else chance
+            entriesEmbed.add_field(name=entry[0], value=f"`Name   `: {username}\n`Tickets`: {entry[1]}\n`Chance `: {chance}%")
+
+        entriesEmbed.set_footer(
+            text=f"{self.bot.user.display_name} > Adventskalender", icon_url=self.bot.user.avatar_url)
+        
+        await self.bot.stdout.send(embed=entriesEmbed)
+        await ctx.send("WIP.", hidden=True)
     
     @cog_ext.cog_subcommand(base="adventskalender", name="ziehen",
                             base_description="Verschiedene Einstellungen für den Adventskalenderbot.",
