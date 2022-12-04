@@ -55,8 +55,8 @@ class AdventCalendar(Cog):
         adventEmbed.set_image(url=image_url)
         adventEmbed.set_footer(
             text=f"{self.bot.user.display_name} > Adventskalender", icon_url=self.bot.user.avatar_url)
-        
-        self.last_msg = await self.advent_channel.send(embed=adventEmbed)
+
+        self.last_msg = await self.bot.advent_channel.send(embed=adventEmbed)
         await self.last_msg.add_reaction("🎅")
 
     def nextDate(self, day: int, month: int):
@@ -88,7 +88,7 @@ class AdventCalendar(Cog):
     async def on_raw_reaction_remove(self, e: RawReactionActionEvent):
         await self.handle_reaction(e)
 
-        
+    
     @cog_ext.cog_subcommand(base="adventskalender", name="ziehen",
                             base_description="Verschiedene Einstellungen für den Adventskalenderbot.",
                             description="Ziehe einen Gewinner für den Adventskalender.",
@@ -120,7 +120,7 @@ class AdventCalendar(Cog):
     async def handle_reaction(self, e: RawReactionActionEvent):
         channel = await self.bot.fetch_channel(e.channel_id)
         
-        if channel.id != self.advent_channel.id:
+        if channel.id != self.bot.advent_channel.id:
             self.bot.log.debug("not correct channel")
             return
 
@@ -133,7 +133,7 @@ class AdventCalendar(Cog):
             self.bot.log.debug(f"not correct emoji: '{e.emoji}'")
             return
 
-        reactUser = await self.bot.testGuild.fetch_member(e.user_id)
+        reactUser = await self.bot.guild.fetch_member(e.user_id)
         if reactUser.bot:
             self.bot.log.debug("reactor is bot")
             return

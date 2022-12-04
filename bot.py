@@ -82,6 +82,7 @@ class Bot(BotBase):
             self.hauptchat = self.get_channel(config['base']['msg_channel_id'])
             self.testGuild = self.get_guild(910968992695468132)
             self.stdout = self.get_channel(910968992695468135)
+            self.advent_channel = self.get_channel(1046802329241931806)
             self.yt_notify = self.get_channel(
                 config['text_channel']['yt_notify'])
             self.guild_log = self.get_channel(
