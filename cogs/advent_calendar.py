@@ -8,7 +8,7 @@ import json
 from bot import Bot
 
 from discord.ext.commands import Cog
-from discord import Embed, RawReactionActionEvent
+from discord import Embed, RawReactionActionEvent, HTTPException
 from discord_slash import cog_ext, SlashContext
 from discord_slash.utils.manage_commands import create_choice, create_option
 
@@ -26,7 +26,7 @@ class AdventCalendar(Cog):
         self.bot = bot
         self.advent_channel = self.bot.get_channel(1046802329241931806)
         self.today = date.today()
-        self.entries = [(123456, 20),(654321, 10),(13246, 70),]
+        self.entries = {}
 
     async def openCalendar(self):
         self.today = date.today()
@@ -73,6 +73,23 @@ class AdventCalendar(Cog):
 
         return next_date
 
+    def getTotalTickets(self):
+        total: int = 0
+        for id, tickets in self.entries.items():
+            if id == None or id <= 0:
+                self.bot.log.warn("skipping false entry: no valid ID for this entry")
+                continue
+            if tickets == None or tickets <= 0:
+                self.bot.log.warn(f"skipping false entry: number of entries for '{id}' aren't valid")
+                continue
+            
+            total += tickets
+        return total
+
+    def getWinChance(self, tickets):
+        c = tickets/self.getTotalTickets()*100
+        return f"{c:.3f}%"
+
     @Cog.listener()
     async def on_ready(self):
 
@@ -94,35 +111,81 @@ class AdventCalendar(Cog):
                             description="Zeige die aktuellen einträge für das Adventskalender-Gewinnspiel.",
                             guild_ids=[guild_id])
     async def showEntries(self, ctx: SlashContext):
-        registeredTickets = 0
-        for entry in self.entries:
-            if entry[0] != None and entry[0] > 0:
-                registeredTickets += entry[1]
+        if len(self.entries) == 0:
+            await ctx.send("No entries yet", hidden=True)
+            return
 
         entriesEmbed = Embed(
-            description="Es sind momentan folgende Leute eingetragen",
+            description=f"Es sind momentan folgende Leute eingetragen:",
             color=0x2f3136)
-        
+        entriesEmbed.add_field(name="Übersicht", value=f"`Teilnehmer`: {len(self.entries)}\n`Tickets   `: {self.getTotalTickets()}\n`%/Ticket  `: {self.getWinChance(1)}", inline=False)
 
-        for entry in self.entries:
-            username = "*coming soon...*"
-            chance = entry[1]/registeredTickets*100
-            chance = chance.floor() if chance%1 == 0.0 else chance
-            entriesEmbed.add_field(name=entry[0], value=f"`Name   `: {username}\n`Tickets`: {entry[1]}\n`Chance `: {chance}%")
+        await ctx.defer() # getting all usernames could take a bit
+
+        for id, tickets in self.entries.items():
+            username = "could not get name"
+            try:
+                user = await self.bot.guild.fetch_member(id)
+                username = user.display_name
+            except HTTPException as e:
+                self.bot.log.warn(e)
+            entriesEmbed.add_field(name=id, value=f"`Name   `: {username}\n`Tickets`: {tickets}\n`Chance `: {self.getWinChance(tickets)}")
 
         entriesEmbed.set_footer(
             text=f"{self.bot.user.display_name} > Adventskalender", icon_url=self.bot.user.avatar_url)
-        
-        await self.bot.stdout.send(embed=entriesEmbed)
-        await ctx.send("WIP.", hidden=True)
-    
+
+        await ctx.send(embed=entriesEmbed)
+
     @cog_ext.cog_subcommand(base="adventskalender", name="ziehen",
                             base_description="Verschiedene Einstellungen für den Adventskalenderbot.",
                             description="Ziehe einen Gewinner für den Adventskalender.",
                             guild_ids=[guild_id])
     async def drawWinner(self, ctx: SlashContext):
-        await ctx.send("WIP.", hidden=True)
-    
+        if len(self.entries) == 0:
+            await ctx.send("No entries yet", hidden=True)
+            return
+
+        winnerKey = random.randint(1,self.getTotalTickets())
+        winnerID: int = 0
+        winnerTickets: int = 0
+
+        counter: int = winnerKey
+        for id, tickets in self.entries.items():
+            if id == None or id <= 0:
+                self.bot.log.warn("skipping false entry: no valid ID for this entry")
+                continue
+            if tickets == None or tickets <= 0:
+                self.bot.log.warn(f"skipping false entry: number of entries for '{id}' aren't valid")
+                continue
+            
+            counter -= tickets
+            if counter <= 0:
+                winnerID = id
+                winnerTickets = tickets
+                break
+
+        #winner = None
+        try:
+            winner = await self.bot.guild.fetch_member(winnerID)
+        except HTTPException as e:
+            self.bot.log.warn(e)
+            await ctx.send("Something went wrong...")
+            return
+        
+        winnerEmbed = Embed(
+            title="Cake4Everyone Gewinnauslosung",
+            color=0xbddeec)
+        winnerEmbed.set_thumbnail(url=winner.avatar_url)
+        winnerEmbed.add_field(name="Gewonnen hat...", value=winner.mention)
+        winnerEmbed.add_field(name="᲼᲼", value="Herzliche Glückwünsche und frohe Weihnachten ❤️")
+        winnerEmbed.add_field(name="Alle Tickets", value=self.getTotalTickets(), inline=False)
+        winnerEmbed.add_field(name="Erhaltene Tickets", value=f"{winnerTickets}/24")
+        winnerEmbed.add_field(name="Gewinnwahrscheinlichkeit", value=self.getWinChance(winnerTickets))
+        winnerEmbed.set_footer(
+            text=f"{self.bot.user.display_name} > Adventskalender", icon_url=self.bot.user.avatar_url)
+
+        await ctx.send(embed=winnerEmbed)
+
     @cog_ext.cog_subcommand(base="adventskalender", name="hinzufügen",
                             base_description="Verschiedene Einstellungen für den Adventskalenderbot.",
                             description="Füge eine Person für die Auslosung hinzu.",
@@ -142,11 +205,16 @@ class AdventCalendar(Cog):
                                               )
                             ])
     async def addMember(self, ctx: SlashContext, person, tickets):
-        await ctx.send("WIP.", hidden=True)
+        if tickets == 0:
+            del self.entries[person.id]
+            await ctx.send(f"Der Eintrag von {person.display_name} wurde entfernt!")
+            return
+        self.entries[person.id] = tickets
+        await ctx.send(f"Die Tickets von {person.display_name} wurden auf {self.entries[person.id]} gesetzt!")
 
     async def handle_reaction(self, e: RawReactionActionEvent):
         channel = await self.bot.fetch_channel(e.channel_id)
-        
+
         if channel.id != self.bot.advent_channel.id:
             self.bot.log.debug("not correct channel")
             return
@@ -172,6 +240,7 @@ class AdventCalendar(Cog):
 
         await self.bot.guild_log.send(
             f"new reaction from {reactUser.mention}: \n> `Type `: `{e.event_type}`\n> `Time `: {timeFormat}\n> `<16h `: {under16hrs}\n> `Count`: {reaction.count}")
+
 
 def setup(bot: Bot):
     bot.add_cog(AdventCalendar(bot))
