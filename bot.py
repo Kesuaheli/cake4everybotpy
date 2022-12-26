@@ -1,6 +1,7 @@
 import logging
 from systemd.journal import JournalHandler
-import os, json
+import os
+import json
 from os import path
 from glob import glob
 from asyncio import sleep
@@ -11,6 +12,7 @@ from apscheduler.triggers.cron import CronTrigger
 from discord import Intents
 from discord.ext.commands import Bot as BotBase
 from discord_slash import SlashCommand
+
 
 class Ready(object):
     def __init__(self):
@@ -24,7 +26,12 @@ class Ready(object):
     def all_ready(self):
         return all([getattr(self, cog) for cog in COGS])
 
+
 class Bot(BotBase):
+    """
+    A wrapper of discords bot class with own features
+    """
+
     def __init__(self):
         with open(path.join(os.path.dirname(__file__), "config.json")) as f:
             config_base = json.load(f)['base']
@@ -38,7 +45,10 @@ class Bot(BotBase):
 
         intents = Intents.default()
         intents.members = True
-        super().__init__(command_prefix="c4e!", self_bot=True, intents=intents, owner_ids=config_base['owner_ids'])
+        intents.messages = True
+        intents.reactions = True
+        super().__init__(command_prefix="c4e!", self_bot=True,
+                         intents=intents, owner_ids=config_base['owner_ids'])
         self.slash = SlashCommand(self, sync_commands=True)
 
     def setup(self):
@@ -56,8 +66,10 @@ class Bot(BotBase):
 
         self.log.debug("running bot...")
         super().run(self.TOKEN, reconnect=True)
+
     async def on_connect(self):
         self.log.debug("bot connected")
+
     async def on_disconnect(self):
         pass
         #self.log.warning("bot disconnected")
@@ -70,7 +82,11 @@ class Bot(BotBase):
             self.hauptchat = self.get_channel(config['base']['msg_channel_id'])
             self.testGuild = self.get_guild(910968992695468132)
             self.stdout = self.get_channel(910968992695468135)
-            self.yt_notify = self.get_channel(config['text_channel']['yt_notify'])
+            self.advent_channel = self.get_channel(1046802329241931806)
+            self.yt_notify = self.get_channel(
+                config['text_channel']['yt_notify'])
+            self.guild_log = self.get_channel(
+                config['text_channel']['guild_log'])
             self.scheduler.start()
 
             self.ready = True
@@ -89,7 +105,8 @@ if __name__ == '__main__':
     with open(path.join(path.dirname(__file__), "config.json")) as f:
         debug = json.load(f)['base']['debug']
 
-    if debug is not path.basename(path.dirname(path.dirname(__file__))).startswith("test"): # rewrite config file
+    # rewrite config file
+    if debug is not path.basename(path.dirname(path.dirname(__file__))).startswith("test"):
         debug = not debug
         if debug:
             config = {
@@ -104,7 +121,8 @@ if __name__ == '__main__':
                 },
                 "text_channel": {
                     "no_mic": 955506588930687066,
-                    "yt_notify": 910968992695468135
+                    "yt_notify": 910968992695468135,
+                    "guild_log": 910968992695468135
                 },
                 "guild": {
                     "test": 910968992695468132,
@@ -124,7 +142,8 @@ if __name__ == '__main__':
                 },
                 "text_channel": {
                     "no_mic": 912006597532864592,
-                    "yt_notify": 1007028983264722964
+                    "yt_notify": 1007028983264722964,
+                    "guild_log": 906228537344794664
                 },
                 "guild": {
                     "test": 910968992695468132,
@@ -135,7 +154,7 @@ if __name__ == '__main__':
             json.dump(config, f, indent=4)
 
     if debug:
-        #logger
+        # logger
         LOG = logging.getLogger('testbot')
         LOG.addHandler(JournalHandler())
         LOG.setLevel(logging.DEBUG)
@@ -144,7 +163,7 @@ if __name__ == '__main__':
         #LOG.warning("text in bold white")
         #LOG.error("text in red")
     else:
-        #logger
+        # logger
         LOG = logging.getLogger('cake4everybot')
         LOG.addHandler(JournalHandler())
         LOG.setLevel(logging.INFO)
@@ -152,7 +171,8 @@ if __name__ == '__main__':
         #LOG.warning("text in bold white")
         #LOG.error("text in red")
 
-    COGS = [path.split("/")[-1][:-3] for path in glob(path.dirname(__file__) + '/cogs/*.py')]
+    COGS = [path.split("/")[-1][:-3]
+            for path in glob(path.dirname(__file__) + '/cogs/*.py')]
 
     bot = Bot()
     bot.run()
